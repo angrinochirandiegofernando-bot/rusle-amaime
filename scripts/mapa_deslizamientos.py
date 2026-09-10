@@ -25,15 +25,17 @@ import os
 # raíz del proyecto: variable de entorno RUSLE_BASE, o la carpeta que contiene /scripts
 DIR_BASE = Path(os.environ.get("RUSLE_BASE", Path(__file__).resolve().parents[1]))
 SAL = DIR_BASE / "Salida"
-DEM_F = SAL / "DEM_Amaime_Copernicus30m.tif"
-SLOPE_F = SAL / "Pendiente_grados.tif"
-FACC_F = SAL / "Flow_Accumulation.tif"
-STREAMS_F = SAL / "Streams.tif"
-CHIRPS_F = SAL / "CHIRPS_Mensual_Climatologia_Amaime_2020_2025.tif"
-ZONA_F = SAL / "Zona_Influencia.gpkg"
-PUNTOS_F = SAL / "Cuenca_amaime_completo.gpkg"
+RAST = SAL / "rasters"; TAB = SAL / "tablas"; MAP = SAL / "mapas"; FIG = SAL / "figuras"
+for _d in (RAST, TAB, MAP, FIG): _d.mkdir(parents=True, exist_ok=True)
+DEM_F = RAST / "DEM_Amaime_Copernicus30m.tif"
+SLOPE_F = RAST / "Pendiente_grados.tif"
+FACC_F = RAST / "Flow_Accumulation.tif"
+STREAMS_F = RAST / "Streams.tif"
+CHIRPS_F = RAST / "CHIRPS_Mensual_Climatologia_Amaime_2020_2025.tif"
+ZONA_F = TAB / "Zona_Influencia.gpkg"
+PUNTOS_F = TAB / "Cuenca_amaime_completo.gpkg"
 CELL = 30.0
-OUT_HTML = SAL / "Mapa_Susceptibilidad_Deslizamientos_Amaime.html"
+OUT_HTML = MAP / "Mapa_Susceptibilidad_Deslizamientos_Amaime.html"
 ASSETS = SAL / "_assets_mapa_deslizamientos"
 ASSETS.mkdir(exist_ok=True)
 
@@ -153,7 +155,7 @@ png_str, _ = a_4326_png(strm, "cool", 0, 1, "streams.png")
 # ---------- 5. puntos: muestrear el índice y su clase ----------
 pts = gpd.read_file(PUNTOS_F).to_crs("EPSG:4326")
 pts_m = gpd.read_file(PUNTOS_F).to_crs(perf["crs"])
-with rasterio.open(SAL / "Susceptibilidad_MM_lluvia_media.tif") as s:
+with rasterio.open(RAST / "Susceptibilidad_MM_lluvia_media.tif") as s:
     coords = [(g.x, g.y) for g in pts_m.geometry]
     vals = [v[0] for v in s.sample(coords)]
 pts["susc_idx"] = vals

@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 DIR_BASE = Path(os.environ.get("RUSLE_BASE", Path(__file__).resolve().parents[1]))
-CSV = DIR_BASE / "Salida" / "Precipitacion_mensual_por_punto.csv"
+CSV = DIR_BASE / "Salida" / "tablas" / "Precipitacion_mensual_por_punto.csv"
 XLSX = DIR_BASE / "Entrada" / "Cuenca Amaime Tesis Dayana.xlsx"
 HOJA = "Precipitacion_mensual"
 

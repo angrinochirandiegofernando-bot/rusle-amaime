@@ -10,12 +10,14 @@ import geopandas as gpd
 import whitebox
 
 SAL = Path(r"D:/Diego Angrino Chiran/Documentos/Cenicaña/SOLIX/RUSLE_Amaime/Salida")
+RAST = SAL / "rasters"; TAB = SAL / "tablas"; MAP = SAL / "mapas"; FIG = SAL / "figuras"
+for _d in (RAST, TAB, MAP, FIG): _d.mkdir(parents=True, exist_ok=True)
 SP = Path(r"C:/Temporal/claude/d--Diego-Angrino-Chiran-Documentos-Cenica-a-SOLIX-RUSLE-Amaime-Script/f7e5098e-49e8-42ce-843e-44fb9c824813/scratchpad")
 TMP = SP / "_cauce_tmp"
 TMP.mkdir(exist_ok=True)
 
-FACC = SAL / "Flow_Accumulation.tif"
-D8 = SAL / "D8_Pointer.tif"
+FACC = RAST / "Flow_Accumulation.tif"
+D8 = RAST / "D8_Pointer.tif"
 
 with rasterio.open(FACC) as s:
     facc = s.read(1).astype("float64")

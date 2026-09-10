@@ -14,6 +14,8 @@ import os
 # raíz del proyecto: variable de entorno RUSLE_BASE, o la carpeta que contiene /scripts
 DIR_BASE = Path(os.environ.get("RUSLE_BASE", Path(__file__).resolve().parents[1]))
 DIR_SAL = DIR_BASE / "Salida"
+RAST = DIR_SAL / "rasters"; TAB = DIR_SAL / "tablas"; MAP = DIR_SAL / "mapas"; FIG = DIR_SAL / "figuras"
+for _d in (RAST, TAB, MAP, FIG): _d.mkdir(parents=True, exist_ok=True)
 Y0, Y1 = 2010, 2025
 MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -21,7 +23,7 @@ ee.Initialize(project="ee-pracagro2")
 print("EE OK")
 
 # --- Región = Zona de Influencia ---
-zona = gpd.read_file(DIR_SAL / "Zona_Influencia.gpkg").to_crs(4326)
+zona = gpd.read_file(TAB / "Zona_Influencia.gpkg").to_crs(4326)
 region = ee.Geometry(zona.geometry.iloc[0].__geo_interface__)
 
 # --- Precipitación mensual media de la cuenca, 2010-2025 (CHIRPS diario -> suma mensual) ---
@@ -60,7 +62,7 @@ df = df.merge(ann[["anio", "P_anual", "sumP2", "MFI", "R"]], on="anio")
 df["aporte_MFI"] = df.P_mm ** 2 / df.P_anual
 df["R_mes"] = df.R * (df.P_mm ** 2 / df.sumP2)     # sum_mes(R_mes) = R_anual
 
-df.to_csv(DIR_SAL / "Serie_mensual_P_erosividad_2010_2025.csv", index=False)
+df.to_csv(TAB / "Serie_mensual_P_erosividad_2010_2025.csv", index=False)
 
 # climatología mensual (media 2010-2025)
 clim = df.groupby("mes").agg(P_mm=("P_mm", "mean"), P_sd=("P_mm", "std"),
@@ -84,7 +86,7 @@ ax1.set_title("Cuenca del río Amaime — Climatología mensual 2010–2025\n"
               fontweight="bold")
 ax1.grid(axis="y", alpha=.25)
 fig.tight_layout()
-fig.savefig(DIR_SAL / "Erosividad_mensual_climatologia.png", dpi=150)
+fig.savefig(FIG / "Erosividad_mensual_climatologia.png", dpi=150)
 plt.close(fig)
 
 # =====================================================================
@@ -105,7 +107,7 @@ axes[1].xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
 for ax in axes:
     ax.grid(alpha=.25)
 fig.tight_layout()
-fig.savefig(DIR_SAL / "Erosividad_mensual_serie_2010_2025.png", dpi=150)
+fig.savefig(FIG / "Erosividad_mensual_serie_2010_2025.png", dpi=150)
 plt.close(fig)
 
 # =====================================================================
@@ -127,7 +129,7 @@ ax.set_title("Cuenca del río Amaime — La erosividad crece con el cuadrado de 
 cb = fig.colorbar(sc, ax=ax, ticks=range(1, 13)); cb.ax.set_yticklabels(MESES_ES); cb.set_label("Mes")
 ax.legend(); ax.grid(alpha=.25)
 fig.tight_layout()
-fig.savefig(DIR_SAL / "Erosividad_vs_precipitacion_mensual.png", dpi=150)
+fig.savefig(FIG / "Erosividad_vs_precipitacion_mensual.png", dpi=150)
 plt.close(fig)
 
 # =====================================================================
@@ -161,7 +163,7 @@ ax[1].grid(alpha=.25)
 fig.suptitle("Cuenca del río Amaime — Relación lluvia ↔ erosividad, 2010–2025 (Obj. V)",
              fontweight="bold", y=1.02)
 fig.tight_layout()
-fig.savefig(DIR_SAL / "Precipitacion_vs_R_anual_2010_2025.png", dpi=150, bbox_inches="tight")
+fig.savefig(FIG / "Precipitacion_vs_R_anual_2010_2025.png", dpi=150, bbox_inches="tight")
 plt.close(fig)
 print(f"\ncorr(P_anual, R) anual = {r_pr:.3f}")
 
