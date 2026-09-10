@@ -126,58 +126,83 @@ const COLORS = ["#1a9850","#a6d96a","#fee08b","#fdae61","#d73027"];
 const NAMES  = ["Muy baja","Baja","Moderada","Alta","Muy alta"];
 const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
 
-const map = L.map("map", { zoomControl:true, fadeAnimation:!reduce, zoomAnimation:!reduce, attributionControl:true });
+const map = L.map("map", { zoomControl:true, fadeAnimation:!reduce, zoomAnimation:!reduce, maxZoom:19 });
 map.attributionControl.setPrefix(false);
-map.attributionControl.addAttribution("CHIRPS · Copernicus DEM · WhiteboxTools");
-
 const B = A.bounds;
-L.imageOverlay(PNG_HS, B, { pane:"tilePane", opacity:1 }).addTo(map);
 
-const scen = {
-  "Lluvia media (climatología 2010–2025)": L.imageOverlay(PNG_MEDIA, B, { opacity:.82 }),
-  "Lluvia extrema": L.imageOverlay(PNG_EXT, B, { opacity:.82 }),
-};
-scen["Lluvia media (climatología 2010–2025)"].addTo(map);
+/* --- Mapas base --- */
+const satelital = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
+  subdomains:["mt0","mt1","mt2","mt3"], maxZoom:20, attribution:"Imágenes © Google"
+});
+const hibrido = L.tileLayer("https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+  subdomains:["mt0","mt1","mt2","mt3"], maxZoom:20, attribution:"Imágenes © Google"
+});
+const calles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom:19, attribution:"© OpenStreetMap"
+});
+satelital.addTo(map);
 
-const fac = {
-  "Pendiente (°)": L.imageOverlay(PNG_SLOPE, B, { opacity:.7 }),
-  "Humedad topográfica (TWI)": L.imageOverlay(PNG_TWI, B, { opacity:.7 }),
-  "Red de drenaje": L.imageOverlay(PNG_STREAMS, B, { opacity:.95 }),
-};
+/* --- Capas de resultado --- */
+const mediaLyr = L.imageOverlay(PNG_MEDIA, B, { opacity:.78 });
+const extLyr   = L.imageOverlay(PNG_EXT,   B, { opacity:.78 });
+const hsLyr    = L.imageOverlay(PNG_HS,    B, { opacity:.5 });
+const slopeLyr = L.imageOverlay(PNG_SLOPE, B, { opacity:.7 });
+const twiLyr   = L.imageOverlay(PNG_TWI,   B, { opacity:.7 });
+const strLyr   = L.imageOverlay(PNG_STREAMS, B, { opacity:.95 });
 
 const ptLayer = L.layerGroup();
 A.puntos.forEach(p => {
   const c = p.n ? COLORS[p.n-1] : "#8a8a8a";
   L.circleMarker([p.lat, p.lon], {
-    radius: 4 + (p.n||0), color:"#1c1c1c", weight:.7, fillColor:c, fillOpacity:.92
+    radius: 4 + (p.n||0), color:"#fff", weight:.9, fillColor:c, fillOpacity:.95
   }).bindPopup(
     `<b>${p.id||"Punto"}</b><br>Susceptibilidad: ${p.n?NAMES[p.n-1]:"s/d"}` +
     (p.pend!=null?`<br><span class="pk">Pendiente</span> ${p.pend} %`:"") +
     (p.ls!=null?`<br><span class="pk">LS</span> ${p.ls}`:"")
   ).addTo(ptLayer);
 });
-ptLayer.addTo(map);
+mediaLyr.addTo(map); ptLayer.addTo(map);
 
-L.control.layers(scen, {
-  "Puntos de muestreo (117)": ptLayer,
-  ...fac,
-}, { collapsed:false, position:"topright" }).addTo(map);
+L.control.layers(
+  { "Satélite (Google)": satelital, "Híbrido (Google)": hibrido, "Calles (OSM)": calles },
+  {
+    "Susceptibilidad — lluvia media": mediaLyr,
+    "Susceptibilidad — lluvia extrema": extLyr,
+    "Pendiente (°)": slopeLyr,
+    "Humedad topográfica (TWI)": twiLyr,
+    "Red de drenaje": strLyr,
+    "Relieve sombreado": hsLyr,
+    "Puntos de muestreo (117)": ptLayer,
+  },
+  { collapsed:false, position:"topright" }
+).addTo(map);
 L.control.scale({ imperial:false, position:"bottomright" }).addTo(map);
 map.fitBounds(B);
 
-/* legend + scenario note */
-const res = { "Lluvia media (climatología 2010–2025)": A.resMedia, "Lluvia extrema": A.resExt };
-function drawLegend(name){
-  const r = res[name];
+/* --- Escenario: solo uno a la vez + leyenda --- */
+const res = { media:A.resMedia, extrema:A.resExt };
+function drawLegend(which){
+  if (!which) { document.getElementById("legrows").innerHTML =
+      '<div class="row" style="color:var(--ink-dim)">Activa un escenario de susceptibilidad</div>';
+    document.getElementById("scenNote").textContent = ""; return; }
+  const r = res[which];
   document.getElementById("legrows").innerHTML = r.map((x,i) =>
     `<div class="row"><span class="sw" style="background:${COLORS[i]}"></span>` +
     `${NAMES[i]} <span style="margin-left:auto;color:var(--ink-dim);font-variant-numeric:tabular-nums">${x.pct} %</span></div>`
   ).join("");
   document.getElementById("scenNote").textContent =
-    "Escenario: " + (name.startsWith("Lluvia media") ? "lluvia media" : "lluvia extrema");
+    "Escenario: " + (which === "media" ? "lluvia media (climatología 2010–2025)" : "lluvia extrema");
 }
-drawLegend("Lluvia media (climatología 2010–2025)");
-map.on("baselayerchange", e => drawLegend(e.name));
+drawLegend("media");
+
+map.on("overlayadd", e => {
+  if (e.layer === mediaLyr) { if (map.hasLayer(extLyr)) map.removeLayer(extLyr); drawLegend("media"); }
+  if (e.layer === extLyr)   { if (map.hasLayer(mediaLyr)) map.removeLayer(mediaLyr); drawLegend("extrema"); }
+});
+map.on("overlayremove", e => {
+  if ((e.layer === mediaLyr || e.layer === extLyr) && !map.hasLayer(mediaLyr) && !map.hasLayer(extLyr))
+    drawLegend(null);
+});
 
 document.getElementById("zha").textContent = A.zona_ha.toLocaleString("es-CO");
 const ab = document.getElementById("aboutBtn"), abx = document.getElementById("aboutBox");
