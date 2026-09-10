@@ -1,0 +1,15 @@
+# Ejecutar el notebook y los scripts requiere Python 3.11+
+earthengine-api
+rasterio
+whitebox
+geopandas
+pandas
+numpy
+scipy
+matplotlib
+openpyxl
+alphashape
+folium
+branca
+jupyter
+nbconvert

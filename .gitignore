@@ -1,0 +1,30 @@
+# --- Datos y salidas (regenerables con el notebook) ---
+# Salida/ pesa ~244 MB e incluye A_USLE_anual_2010_2025.tif (107 MB), por encima
+# del limite de 100 MB por archivo de GitHub. Se regenera al ejecutar el notebook.
+/Salida/
+
+# Datos de entrada: la tabla de puntos y la base de suelos de la tesis
+# (propiedad de su autora). Colocar manualmente en Entrada/ para ejecutar.
+/Entrada/
+
+# --- Copias, respaldos y notebooks ejecutados ---
+Script/*.bak_*
+Script/*.ipynb.bak*
+Script/RUSLE_Amaime_EJECUTADO_*.ipynb
+Script/RUSLE_Amaime.ipynb
+
+# --- Python / Jupyter ---
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# --- Credenciales / configuracion local ---
+.env
+*.credentials
+**/settings.local.json
+
+# --- Sistema ---
+.DS_Store
+Thumbs.db
