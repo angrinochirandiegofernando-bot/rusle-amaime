@@ -10,7 +10,7 @@
 # --- Copias, respaldos y notebooks ejecutados ---
 Script/*.bak_*
 Script/*.ipynb.bak*
-Script/RUSLE_Amaime_EJECUTADO_*.ipynb
+Script/RUSLE_Amaime_EJECUTADO*.ipynb
 Script/RUSLE_Amaime.ipynb
 
 # --- Python / Jupyter ---
