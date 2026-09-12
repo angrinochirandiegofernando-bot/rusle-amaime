@@ -127,6 +127,11 @@ body{
     <option value="proy">Proyección IDEAM (por escenario)</option>
     <option value="anual">Total anual RUSLE (clasificación oficial)</option>
   </select>
+  <select id="capaSel" style="width:100%;margin-top:6px">
+    <option value="rusle">Pérdida de suelo RUSLE</option>
+    <option value="susc">Susceptibilidad a deslizamiento</option>
+    <option value="chirps">Precipitación CHIRPS</option>
+  </select>
   <select id="escSel" style="width:100%;margin-top:6px;display:none">
     <option value="0">Base (2021-2025 observado)</option>
     <option value="1">SSP1-2.6</option>
@@ -256,6 +261,7 @@ ab.addEventListener("click", () => {
   const MES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
   const idxSel   = document.getElementById("rusleIdx");
   const vistaSel = document.getElementById("vistaSel");
+  const capaSel  = document.getElementById("capaSel");
   const escSel   = document.getElementById("escSel");
   const anioSel  = document.getElementById("anioSel");
   const slider   = document.getElementById("rusleSlider");
@@ -298,9 +304,17 @@ ab.addEventListener("click", () => {
   const rusleLyr  = nuevaCapa();
   const succLyr   = nuevaCapa();
   const chirpsLyr = nuevaCapa();
-  layersCtl.addOverlay(rusleLyr, "Pérdida de suelo RUSLE (mensual, interpolado)");
-  layersCtl.addOverlay(succLyr, "Susceptibilidad a deslizamiento (mensual, interpolada)");
-  layersCtl.addOverlay(chirpsLyr, "Precipitación CHIRPS (mensual, interpolada)");
+  /* RUSLE / Susceptibilidad / CHIRPS son 3 lecturas del MISMO panel
+     temporal -- nunca deben verse simultaneamente (se mezclarian por
+     transparencia y la leyenda mostraria 2-3 escalas de color apiladas).
+     En vez de 3 checkboxes independientes (que Leaflet no puede hacer
+     mutuamente excluyentes de forma confiable), se registra UN solo
+     checkbox en el control de capas; el selector "capaSel" del panel
+     elige cual de las 3 superficies se muestra. */
+  const CAPAS_POR_VARIABLE = { rusle: rusleLyr, susc: succLyr, chirps: chirpsLyr };
+  const capaVarLyr = L.layerGroup(); // placeholder registrado en el control
+  function capaActiva(){ return CAPAS_POR_VARIABLE[capaSel.value]; }
+  layersCtl.addOverlay(capaVarLyr, "Capa interpolada: RUSLE / Susceptibilidad / CHIRPS");
 
   function mesLabel(f){ const [y,mo] = f.split("-"); return MES[+mo-1] + " " + y; }
 
@@ -319,8 +333,9 @@ ab.addEventListener("click", () => {
   const NAMES_OFICIAL = ["Tolerable","Baja","Moderada","Alta","Muy alta"];
   function actualizarLeyendas(idx, breaks){
     let html = "";
+    const activa = map.hasLayer(capaVarLyr) ? capaSel.value : null;
     if (vistaSel.value === "anual") {
-      if (map.hasLayer(rusleLyr)){
+      if (activa === "rusle"){
         const br = ANUAL.breaks_oficial;
         const rangos = ["< "+br[0], br[0]+"–"+br[1], br[1]+"–"+br[2], br[2]+"–"+br[3], "> "+br[3]];
         html += '<div class="note" style="margin:4px 0 2px">RUSLE anual, clasificación oficial (t·ha⁻¹·año⁻¹)</div>' +
@@ -329,16 +344,14 @@ ab.addEventListener("click", () => {
       legendEl.innerHTML = html || '<div class="note" style="color:var(--ink-dim)">Activa la capa RUSLE</div>';
       return;
     }
-    if (map.hasLayer(rusleLyr)){
+    if (activa === "rusle"){
       html += '<div class="note" style="margin:4px 0 2px">RUSLE (t·ha⁻¹·mes⁻¹)</div>' +
         rangosDe(breaks[idx]).map((r,i)=>filaLeyenda(COLORS[i],NAMES[i],r)).join("");
-    }
-    if (map.hasLayer(succLyr)){
-      html += '<div class="note" style="margin:6px 0 2px">Susceptibilidad</div>' +
+    } else if (activa === "susc"){
+      html += '<div class="note" style="margin:4px 0 2px">Susceptibilidad</div>' +
         rangosDe(breaks.susc[idx]).map((r,i)=>filaLeyenda(COLORS[i],NAMES[i],r)).join("");
-    }
-    if (map.hasLayer(chirpsLyr)){
-      html += '<div class="note" style="margin:6px 0 2px">CHIRPS (mm/mes)</div>' +
+    } else if (activa === "chirps"){
+      html += '<div class="note" style="margin:4px 0 2px">CHIRPS (mm/mes)</div>' +
         rangosDe(breaks.chirps).map((r,i)=>filaLeyenda(COLORS_CHIRPS[i],NAMES_CHIRPS[i],r)).join("");
     }
     legendEl.innerHTML = html || '<div class="note" style="color:var(--ink-dim)">Activa una capa interpolada</div>';
@@ -364,12 +377,13 @@ ab.addEventListener("click", () => {
     const { src, i, breaks, label } = datosActuales();
     dateLbl.textContent = label;
     const esAnual = vistaSel.value === "anual";
-    if (map.hasLayer(rusleLyr))  rusleLyr.setUrl(pintar(src[idx === "ndvi" ? "rusle_ndvi" : "rusle_evi"][i], COLORS));
-    if (!esAnual) {
-      if (map.hasLayer(succLyr))   succLyr.setUrl(pintar(src[idx === "ndvi" ? "susc_ndvi" : "susc_evi"][i], COLORS));
-      if (map.hasLayer(chirpsLyr)) chirpsLyr.setUrl(pintar(src.chirps[i], COLORS_CHIRPS));
+    if (map.hasLayer(capaVarLyr)) {
+      const v = capaSel.value;
+      if (v === "rusle")  rusleLyr.setUrl(pintar(src[idx === "ndvi" ? "rusle_ndvi" : "rusle_evi"][i], COLORS));
+      if (v === "susc" && !esAnual)   succLyr.setUrl(pintar(src[idx === "ndvi" ? "susc_ndvi" : "susc_evi"][i], COLORS));
+      if (v === "chirps" && !esAnual) chirpsLyr.setUrl(pintar(src.chirps[i], COLORS_CHIRPS));
+      aplicarRecorte(capaActiva());
     }
-    [rusleLyr, succLyr, chirpsLyr].forEach(aplicarRecorte);
     actualizarLeyendas(idx, breaks);
     if (vistaSel.value === "hist") moverMarcador(i);
   }
@@ -384,9 +398,40 @@ ab.addEventListener("click", () => {
     if (v === "proy") { slider.max = 11; slider.value = 0; }
     else if (v === "hist") { slider.max = T.fechas.length - 1; slider.value = T.fechas.length - 1; }
     svg.style.opacity = v === "hist" ? 1 : .4;
+    // la vista Anual solo tiene clasificacion oficial para RUSLE
+    const soloRusle = v === "anual";
+    capaSel.querySelector('option[value="susc"]').disabled = soloRusle;
+    capaSel.querySelector('option[value="chirps"]').disabled = soloRusle;
+    if (soloRusle && capaSel.value !== "rusle") {
+      capaSel.value = "rusle";
+      if (map.hasLayer(capaVarLyr)) { [succLyr, chirpsLyr].forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); }); map.addLayer(rusleLyr); }
+    }
     actualizar();
   });
   anioSel.addEventListener("change", actualizar);
+
+  /* capaSel elige CUAL de las 3 superficies (RUSLE/Susceptibilidad/CHIRPS)
+     se muestra bajo el unico checkbox "capaVarLyr" -- nunca hay mas de una
+     activa en el mapa al mismo tiempo. */
+  capaSel.addEventListener("change", () => {
+    if (map.hasLayer(capaVarLyr)) {
+      [rusleLyr, succLyr, chirpsLyr].forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+      map.addLayer(capaActiva());
+    }
+    actualizar();
+  });
+  map.on("overlayadd", e => {
+    if (e.layer !== capaVarLyr) return;
+    map.addLayer(capaActiva());
+    panel.style.display = "block";
+    actualizar();
+  });
+  map.on("overlayremove", e => {
+    if (e.layer !== capaVarLyr) return;
+    [rusleLyr, succLyr, chirpsLyr].forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+    panel.style.display = "none";
+    if (playing) playBtn.click();
+  });
 
   let playing = false, timer = null;
   playBtn.addEventListener("click", () => {
@@ -400,17 +445,6 @@ ab.addEventListener("click", () => {
         slider.value = v; actualizar();
       }, 700);
     } else if (timer) { clearInterval(timer); }
-  });
-
-  [rusleLyr, succLyr, chirpsLyr].forEach(ly => {
-    map.on("overlayadd", e => { if (e.layer === ly) { panel.style.display = "block"; actualizar(); } });
-    map.on("overlayremove", e => {
-      if (e.layer !== ly) return;
-      if (!map.hasLayer(rusleLyr) && !map.hasLayer(succLyr) && !map.hasLayer(chirpsLyr)) {
-        panel.style.display = "none";
-        if (playing) playBtn.click();
-      } else { actualizarLeyendas(idxSel.value, datosActuales().breaks); }
-    });
   });
 
   /* --- mini grafica: A (NDVI/EVI) arriba, precipitacion abajo (siempre historico 2021-2025) --- */
