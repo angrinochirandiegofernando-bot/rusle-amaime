@@ -1,0 +1,51 @@
+
+RESUMEN DE EJECUCION -- RUSLE_PIPELINE_COMPLETO.ipynb
+Fecha de ejecucion: 2026-09-15 08:32
+
+1) INSUMOS UTILIZADOS (ninguno modificado):
+   - Excel original: Cuenca amaime.xlsx (117 parcelas x 24 columnas)
+   - Excel tesis Dayana: Cuenca Amaime Tesis Dayana.xlsx (117 parcelas x 227 columnas, hoja 'Datos')
+   - Metodologia: DETALLE RESULTADOS.docx
+   - AOI oficial: Cuenca_Amaime.geojson (1,510 km2)
+   - Rasters reales integrados sin recalcular: LS_Mitasova_2001_CUENCA_COMPLETA.tif,
+     Pendiente_grados_CUENCA_COMPLETA.tif, Flow_Accumulation_CUENCA_COMPLETA.tif,
+     60 meses de CHIRPS y 60 meses de Sentinel-2 NDVI/EVI (mensual_cuenca_completa/)
+
+2) FACTOR LS: metodologia Mitasova (DETALLE RESULTADOS.docx), clasificado
+   segun Lu et al. (2020). Validado contra 'LS Diego' (tesis) en 117 puntos:
+   correlacion 0.999, razon mediana 1.00 -- confirma
+   que el raster reproduce fielmente la metodologia oficial.
+
+3) HALLAZGO IMPORTANTE: los rasters individuales Factor_R/K/C/P.tif y
+   A_USLE.tif del notebook ORIGINAL no existen en Salida/rasters/ (se
+   busco exhaustivamente). K, C, P provienen de la tabla de 117 puntos de
+   la tesis (K, P interpolados por IDW; C viene del NDVI/EVI mensual real).
+   R y la perdida de suelo A se calcularon pixel a pixel con datos reales
+   (CHIRPS, Sentinel-2) reutilizando la formula ya validada del geovisor,
+   materializados aqui por primera vez como GeoTIFF independientes.
+   UNIDADES: A_USLE_promedio_mensual_*.tif es el promedio de los 60 valores
+   MENSUALES 2021-2025 (ton/ha/MES), no un total anual.
+
+4) CHIRPS: diagnostico de cobertura dentro del AOI documentado en la
+   Seccion 8 (ver Validacion_maestra_rasters.csv y CHIRPS_cobertura_por_mes.csv).
+   Cobertura de datos dentro del AOI: 100.0%
+   a 100.0% en los 60 meses -- el raster
+   esta completo; los "espacios en blanco" reportados antes en el geovisor eran de
+   renderizado (mascara por centro de celda), no de datos faltantes.
+
+5) ARCHIVOS GENERADOS: 29, organizados en 11
+   categorias dentro de RESULTADOS/, sin mezclar factores/RUSLE/susceptibilidad/CHIRPS.
+
+6) PROBLEMAS ENCONTRADOS Y CORREGIDOS EN ESTA REVISION:
+   - Bug de merge (columnas LONG/LAT duplicadas al comparar LS Diego vs
+     raster) -- corregido usando las columnas propias de la tesis.
+   - Confirmada la NO existencia de rasters de factores individuales
+     previos -- documentado explicitamente en vez de asumir o inventar.
+   - Sesgo de ~2x en A_USLE detectado al remuestrear LS/CHIRPS/S2 a una
+     malla mas gruesa (EPSG:4326, ~127m) antes de combinarlos: LS tiene
+     mucha variabilidad local (picos en los cauces) y se distorsiona al
+     remuestrear. CORREGIDO: se descubrio que LS, CHIRPS mensual y
+     Sentinel-2 mensual ya comparten exactamente la misma grilla nativa
+     (2377x1169 px, EPSG:3115, 30m) -- se combinan sin remuestrear.
+     Razon mediana final raster/puntual validado: N/D (CSV de validacion puntual no disponible)
+     (antes de la correccion: ~2.0).

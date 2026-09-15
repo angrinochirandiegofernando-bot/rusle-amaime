@@ -12,6 +12,8 @@ Script/*.bak_*
 Script/*.ipynb.bak*
 Script/RUSLE_Amaime_EJECUTADO*.ipynb
 Script/RUSLE_Amaime.ipynb
+Script/RUSLE_Amaime_FACTOR_R_CORREGIDO_COLAB.ipynb
+Script/.claude/
 
 # --- Python / Jupyter ---
 __pycache__/

@@ -1,0 +1,7 @@
+﻿variable,fuente,escala,usa_en
+Factor K calculado,Tesis Dayana.xlsx / hoja Datos,punto (117 parcelas),RUSLE
+LS Diego,Tesis Dayana.xlsx / hoja Datos,punto (117 parcelas),RUSLE (LS oficial)
+FACTOR P,Tesis Dayana.xlsx / hoja Datos,punto (117 parcelas),RUSLE
+NDVI/EVI mensual,"Sentinel-2 (Earth Engine), real",raster 30 m,Factor C mensual (Durigon 2014)
+CHIRPS mensual,"CHIRPS (Earth Engine), real",raster ~30 m (remuestreado de ~5.5 km nativo),Factor R mensual (Fournier/MFI)
+Pendiente / TWI,"DEM Copernicus GLO-30, real",raster 30 m,Factor LS (Mitasova) y Susceptibilidad
